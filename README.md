@@ -129,7 +129,6 @@ python export_leads.py --category ai_influencers --limit 200
 - Do NOT commit your `venv/` directory or `.pw-session.json` to git. A `.gitignore` is included to prevent this.
 - The repository already includes `requirements.txt`. If you add packages, update that file and re-run `pip install -r requirements.txt`.
 - Playwright-based scraping interacts with LinkedIn pages and may break if LinkedIn changes its layout. Tweak selectors in `export_leads.py` if needed.
-- Use this tool responsibly and in accordance with LinkedIn's Terms of Service and applicable laws.
 
 ---
 
