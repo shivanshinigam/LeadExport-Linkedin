@@ -1,152 +1,256 @@
-# LinkedIn Lead Export Automation
+# 🔗 LinkedIn Lead Export Automation
 
-## Overview
+> Extract LinkedIn profiles by category, enrich them with verified work emails, and export business-ready lead lists in CSV and Excel formats.
 
-This tool extracts LinkedIn profiles by category, enriches them with verified work emails (via AnymailFinder), and exports business-ready lead lists in CSV and Excel formats.
-
-Designed for business and sales teams with simple command-based usage.
-
----
-
-## 🔐 First-Time Setup (One-Time Login)
-
-You must log into LinkedIn once to save your Playwright session state. This lets the scripts reuse your authenticated session without re-login.
-
-### Step 1 — Save LinkedIn Session
-
-Run the browser login helper which opens a browser window for you to sign in and then saves a session file:
-
-```bash
-python browser_login.py
-```
-
-A browser window will open. Steps:
-- Log in to your LinkedIn account.
-- Wait until the LinkedIn home/feed page fully loads.
-- Return to the terminal and press ENTER to save the session.
-
-This creates:
-
-- `.pw-session.json`
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)](https://python.org)
+[![Playwright](https://img.shields.io/badge/Playwright-Scraping-green?logo=playwright)](https://playwright.dev)
+[![Proxycurl](https://img.shields.io/badge/API-Proxycurl-orange)](https://nubela.co/proxycurl/)
+[![AnymailFinder](https://img.shields.io/badge/API-AnymailFinder-purple)](https://newapp.anymailfinder.com)
 
 ---
 
-## 🚀 Generate Leads
+## 🧠 Which Mode Should You Use?
 
-Using a preset category (recommended):
-
-```bash
-python export_leads.py --category ai_influencers --limit 200
-```
-
-Available preset categories (keys):
-- `ai_influencers`
-- `engineering_leaders`
-- `architects`
-- `ld_heads`
-
-Using custom keywords:
-
-```bash
-python export_leads.py --category "AI Researcher India" --limit 150
-```
-
-### ⚙️ Workflow
-LinkedIn Search → Profile Scraping → Email Enrichment → Lead Export
-
-### 📊 Data Fields Captured
-- Full Name
-- Professional Headline
-- Location
-- LinkedIn Profile URL
-- Verified Work Email
-- Email Verification Status
-
-### 📁 Output Files
-- CSV export
-- Excel (.xlsx) export
-
-Files are saved in:
-
-```
-/data
-```
+| Use Case | Recommended Mode |
+|---|---|
+| Quick small list | 🖥️ Browser Mode |
+| Large lists (100+) | ⚡ API Mode |
+| No LinkedIn login | ⚡ API Mode |
+| Advanced filters | ⚡ API Mode |
+| Highest speed | ⚡ API Mode |
 
 ---
 
-## ✉️ Email Enrichment
+## 📦 Installation & Setup
 
-This project integrates with the AnymailFinder API to fetch verified work emails using LinkedIn profile URLs.
-
-Set your AnymailFinder API key in an environment variable (recommended) or a `.env` file used by `python-dotenv`.
-
-Example `.env`:
-
-```
-ANYMAILFINDER_API_KEY=your_anymailfinder_api_key_here
-PROXYCURL_API_KEY=your_proxycurl_api_key_here
-```
-
-(The project already contains `requirements.txt` listing `python-dotenv` if you want to load a `.env` file.)
-
----
-
-## Installation & Local Setup
-
-1. Create a Python virtual environment (recommended):
+### 1. Create a virtual environment
 
 ```bash
-cd /path/to/leadgen-proxycurl
+cd /path/to/project
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-2. Upgrade pip and install dependencies:
+### 2. Install dependencies
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-3. If you plan to run Playwright locally, install browsers once:
+### 3. Set up API keys
 
-```bash
-playwright install
+Create a `.env` file in the project root:
+
+```env
+ANYMAIL_API_KEY=your_anymailfinder_api_key_here
+PROXYCURL_API_KEY=your_proxycurl_api_key_here
 ```
 
-4. Save your LinkedIn session as described above with `browser_login.py`.
+> 🔑 Get your keys:
+> - **Proxycurl** → [nubela.co/proxycurl](https://nubela.co/proxycurl/)
+> - **AnymailFinder** → [newapp.anymailfinder.com/settings/api](https://newapp.anymailfinder.com/settings/api)
 
-5. Run the exporter:
+---
+
+## 🖥️ Mode 1 — Browser Automation (Playwright)
+
+Uses LinkedIn search pages + browser scraping.
+
+### First-Time Login (One-Time Setup)
+
+Save your LinkedIn session so scripts can reuse it without re-authenticating:
+
+```bash
+python browser_login.py
+```
+
+**Steps:**
+1. A browser window opens
+2. Log in to LinkedIn
+3. Wait until the home/feed page loads
+4. Return to the terminal and press **ENTER**
+
+This creates a session file: `.pw-session.json`
+
+> ⚠️ Install Playwright browsers if not already done:
+> ```bash
+> playwright install
+> ```
+
+---
+
+### 🚀 Generate Leads (Browser Mode)
+
+**Using a preset category:**
 
 ```bash
 python export_leads.py --category ai_influencers --limit 200
 ```
 
----
+**Available preset categories:**
 
-## Notes & Recommendations
+| Category | Description |
+|---|---|
+| `ai_influencers` | AI thought leaders & influencers |
+| `engineering_leaders` | Engineering VPs, Directors, CTOs |
+| `architects` | Solution & Software Architects |
+| `ld_heads` | Heads of L&D / Learning & Development |
 
-- Do NOT commit your `venv/` directory or `.pw-session.json` to git. A `.gitignore` is included to prevent this.
-- The repository already includes `requirements.txt`. If you add packages, update that file and re-run `pip install -r requirements.txt`.
-- Playwright-based scraping interacts with LinkedIn pages and may break if LinkedIn changes its layout. Tweak selectors in `export_leads.py` if needed.
-
----
-
-## Troubleshooting
-
-- If the script complains about missing modules, ensure your virtualenv is active and packages are installed:
+**Using custom keywords:**
 
 ```bash
-source venv/bin/activate
-pip install -r requirements.txt
+python export_leads.py --category "AI Researcher India" --limit 150
 ```
-
-- If Playwright cannot open a browser, run:
-
-```bash
-playwright install
-```
-
-- If you lose `.pw-session.json`, re-run `browser_login.py` to regenerate it.
 
 ---
+
+### ⚙️ Browser Workflow
+
+```
+LinkedIn Search → Profile Scraping → Email Enrichment → Lead Export
+```
+
+### 📊 Data Fields Captured
+
+| Field | Description |
+|---|---|
+| Full Name | Candidate's full name |
+| Professional Headline | LinkedIn headline |
+| Location | City / Region |
+| LinkedIn Profile URL | Direct profile link |
+| Verified Work Email | Enriched via AnymailFinder |
+| Email Verification Status | Confidence of email match |
+
+---
+
+## ⚡ Mode 2 — API Mode (Proxycurl + AnymailFinder)
+
+Uses APIs instead of browser scraping. **5–10x faster, no LinkedIn login required.**
+
+✅ Faster & more scalable  
+✅ No LinkedIn login needed  
+✅ Richer company & industry data  
+✅ Advanced filtering support  
+
+---
+
+### 🚀 Generate Leads (API Mode)
+
+**Using a preset category:**
+
+```bash
+python export_leads_api.py --category ai_influencers --limit 200
+```
+
+**Using custom keywords:**
+
+```bash
+python export_leads_api.py --keywords "AI Healthcare Robotics" --limit 150
+```
+
+---
+
+### 🎛️ Filters & Options
+
+#### 🌍 Location Filters
+```bash
+--country IN
+--city Bangalore
+```
+
+#### 👔 People Filters
+```bash
+--seniority director
+--job-title "Head of Engineering"
+```
+
+#### 🏢 Company Filters
+```bash
+--industry "Information Technology"
+--company-size-min 200
+--company-size-max 5000
+--revenue-min 1000000
+--public-only
+```
+
+---
+
+### 🔥 Full Example
+
+```bash
+python export_leads_api.py \
+  --keywords "AI Platform" \
+  --country US \
+  --seniority director \
+  --industry "Computer Software" \
+  --company-size-min 500 \
+  --revenue-min 10000000 \
+  --limit 300
+```
+
+---
+
+### ⚙️ API Workflow
+
+```
+Keyword Search → Profile API → Email Enrichment → Lead Export
+```
+
+### 📊 API Data Fields Captured
+
+| Field | Description |
+|---|---|
+| Full Name | Candidate's full name |
+| Professional Headline | LinkedIn headline |
+| Location (Country) | Country of residence |
+| Company | Current employer |
+| Industry | Company industry |
+| Company Size | Number of employees |
+| Revenue | Estimated company revenue |
+| LinkedIn Profile URL | Direct profile link |
+| Verified Work Email | Enriched via AnymailFinder |
+| Email Verification Status | Confidence of email match |
+
+---
+
+## 📁 Output
+
+All exports are saved to the `/data` directory in two formats:
+
+| Format | Description |
+|---|---|
+| `.csv` | Universal spreadsheet format |
+| `.xlsx` | Excel-ready format with formatting |
+
+---
+
+## 🚨 Troubleshooting
+
+| Issue | Fix |
+|---|---|
+| Missing modules | `source venv/bin/activate && pip install -r requirements.txt` |
+| Playwright browser issue | `playwright install` |
+| Lost LinkedIn session | `python browser_login.py` |
+| API not working | Check `.env` keys and ensure billing is active on the APIs |
+
+---
+
+## 🔒 Security & Best Practices
+
+Add these to your `.gitignore` — **never commit them:**
+
+```gitignore
+venv/
+.pw-session.json
+.env
+data/
+```
+
+> ℹ️ If LinkedIn updates its UI, browser scraping selectors may need manual updates. API mode is more stable for long-term production use.
+
+---
+
+## ✉️ Email Enrichment
+
+Verified work emails are fetched using the **AnymailFinder API**. Each email result includes a confidence/verification status so you can filter by match quality before outreach.
