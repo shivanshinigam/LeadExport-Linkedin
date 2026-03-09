@@ -10,7 +10,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from anymailfinder_client import AnymailFinderClient
 
-# ================== SETUP ==================
+# SETUP
 load_dotenv()
 
 PDL_API_KEY = os.getenv("PDL_API_KEY")
@@ -21,7 +21,7 @@ DATA_DIR.mkdir(exist_ok=True)
 
 email_client = AnymailFinderClient()
 
-# ================== PRESET CATEGORIES ==================
+#  PRESET CATEGORIES 
 CATEGORY_MAP = {
     "ai_influencers": 'job_title:("AI" OR "Machine Learning" OR "GenAI" OR "Data Engineering" OR "MLOps")',
     "engineering_leaders": 'job_title:("VP Engineering" OR "Director Engineering" OR "Head Engineering")',
@@ -29,7 +29,7 @@ CATEGORY_MAP = {
     "ld_heads": 'job_title:("Head Learning" OR "L&D" OR "Training Head" OR "Talent Development")',
 }
 
-# ================== FILTER BUILDER ==================
+#  FILTER BUILDER 
 
 def build_query(args):
     filters = []
@@ -64,7 +64,7 @@ def build_query(args):
 
     return " AND ".join(filters)
 
-# ================== SEARCH ==================
+#  SEARCH 
 
 def search_people(args):
     print("\n🔎 Searching via People Data Labs API...")
@@ -97,7 +97,7 @@ def search_people(args):
 
     return list(dict.fromkeys(urls))[: args.limit]
 
-# ================== PROFILE ENRICH ==================
+#  PROFILE ENRICH 
 
 def enrich_profile(url):
     profile = {
@@ -146,7 +146,7 @@ def enrich_profile(url):
 
     return profile
 
-# ================== MAIN ==================
+#  MAIN 
 
 def main():
     parser = argparse.ArgumentParser(description="🚀 LinkedIn Lead Engine — API Only (PDL)")
