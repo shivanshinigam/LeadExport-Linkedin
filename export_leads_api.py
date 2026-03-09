@@ -5,93 +5,97 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
+import requests
 import pandas as pd
 from dotenv import load_dotenv
-from proxycurl import Proxycurl
 from anymailfinder_client import AnymailFinderClient
 
 # ================== SETUP ==================
 load_dotenv()
 
+PDL_API_KEY = os.getenv("PDL_API_KEY")
+PDL_URL = "https://api.peopledatalabs.com/v5/person/search"
+
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(exist_ok=True)
 
-proxycurl = Proxycurl(api_key=os.getenv("PROXYCURL_API_KEY"))
 email_client = AnymailFinderClient()
 
 # ================== PRESET CATEGORIES ==================
 CATEGORY_MAP = {
-    "ai_influencers": "AI OR Machine Learning OR GenAI OR Data Engineering OR MLOps",
-    "engineering_leaders": "VP Engineering OR Director Engineering OR Head Engineering",
-    "architects": "Software Architect OR Solutions Architect OR Enterprise Architect",
-    "ld_heads": "Head Learning Development OR L&D OR Training Head OR Talent Development",
+    "ai_influencers": 'job_title:("AI" OR "Machine Learning" OR "GenAI" OR "Data Engineering" OR "MLOps")',
+    "engineering_leaders": 'job_title:("VP Engineering" OR "Director Engineering" OR "Head Engineering")',
+    "architects": 'job_title:("Software Architect" OR "Solutions Architect" OR "Enterprise Architect")',
+    "ld_heads": 'job_title:("Head Learning" OR "L&D" OR "Training Head" OR "Talent Development")',
 }
 
-# ================== FILTER ENGINE ==================
+# ================== FILTER BUILDER ==================
 
-def build_search_params(args):
-    params = {
-        "keyword": args.keywords,
-        "page_size": min(args.limit, 100),
-        "enrich_profiles": False,
-    }
+def build_query(args):
+    filters = []
 
+    # Keywords
+    if args.keywords:
+        filters.append(f'job_title:("{args.keywords}")')
+
+    # Location filters
     if args.country:
-        params["country"] = args.country.upper()
+        filters.append(f'location_country:"{args.country}"')
 
     if args.city:
-        params["city"] = args.city
+        filters.append(f'location_locality:"{args.city}"')
 
+    # Seniority
     if args.seniority:
-        params["seniority"] = args.seniority.lower()
+        filters.append(f'job_seniority:"{args.seniority}"')
 
-    if args.job_title:
-        params["job_title"] = args.job_title
-
+    # Company filters
     if args.company:
-        params["company"] = args.company
+        filters.append(f'job_company_name:"{args.company}"')
 
     if args.industry:
-        params["industry"] = args.industry
+        filters.append(f'job_company_industry:"{args.industry}"')
 
-    if args.company_size_min or args.company_size_max:
-        params["company_size_min"] = args.company_size_min
-        params["company_size_max"] = args.company_size_max
+    if args.company_size_min:
+        filters.append(f'job_company_size:>={args.company_size_min}')
 
-    if args.revenue_min or args.revenue_max:
-        params["revenue_min"] = args.revenue_min
-        params["revenue_max"] = args.revenue_max
+    if args.company_size_max:
+        filters.append(f'job_company_size:<={args.company_size_max}')
 
-    if args.public_only:
-        params["public_company_only"] = True
-
-    return params
-
+    return " AND ".join(filters)
 
 # ================== SEARCH ==================
 
 def search_people(args):
-    print("\n🔎 Searching via Proxycurl API...")
+    print("\n🔎 Searching via People Data Labs API...")
+
+    query = build_query(args)
+
+    headers = {
+        "X-Api-Key": PDL_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "query": {"bool": {"must": [{"query_string": {"query": query}}]}},
+        "size": min(args.limit, 100),
+    }
+
     urls = []
 
-    params = build_search_params(args)
-
     try:
-        resp = proxycurl.linkedin.person.search(**params)
-        profiles = resp.get("profiles", [])
+        r = requests.post(PDL_URL, headers=headers, json=payload, timeout=30)
+        data = r.json()
 
-        for p in profiles:
-            url = p.get("linkedin_profile_url")
-            if url:
-                urls.append(url)
+        for person in data.get("data", []):
+            linkedin = person.get("linkedin_url")
+            if linkedin:
+                urls.append(linkedin)
 
     except Exception as e:
         print("⚠ Search failed:", e)
 
-    # Deduplicate
-    urls = list(dict.fromkeys(urls))
-    return urls[: args.limit]
-
+    return list(dict.fromkeys(urls))[: args.limit]
 
 # ================== PROFILE ENRICH ==================
 
@@ -103,31 +107,33 @@ def enrich_profile(url):
         "Company": "",
         "Industry": "",
         "Company Size": "",
-        "Revenue": "",
         "Profile URL": url,
         "Email": "",
         "Email Status": "",
     }
 
+    # PDL enrichment
     try:
-        data = proxycurl.linkedin.person.get(
-            linkedin_profile_url=url,
-            use_cache=True,
+        headers = {"X-Api-Key": PDL_API_KEY}
+        r = requests.get(
+            "https://api.peopledatalabs.com/v5/person/enrich",
+            headers=headers,
+            params={"profile": url},
+            timeout=30,
         )
+        data = r.json()
 
         profile["Name"] = data.get("full_name", "")
-        profile["Headline"] = data.get("occupation", "")
-        profile["Location"] = data.get("country_full_name", "")
+        profile["Headline"] = data.get("job_title", "")
+        profile["Location"] = data.get("location_country", "")
 
-        if data.get("experiences"):
-            exp = data["experiences"][0]
-            profile["Company"] = exp.get("company", "")
-            profile["Industry"] = exp.get("company_industry", "")
-            profile["Company Size"] = exp.get("company_employee_count_range", "")
-            profile["Revenue"] = exp.get("company_annual_revenue", "")
+        job = data.get("job_company", {})
+        profile["Company"] = job.get("name", "")
+        profile["Industry"] = job.get("industry", "")
+        profile["Company Size"] = job.get("size", "")
 
     except Exception:
-        print("   ⚠ Profile fetch failed")
+        print("   ⚠ Profile enrich failed")
 
     # Email enrichment
     try:
@@ -140,33 +146,22 @@ def enrich_profile(url):
 
     return profile
 
-
 # ================== MAIN ==================
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="🚀 LinkedIn Lead Engine — API Only (Advanced Filters)"
-    )
-
-    # Core
+    parser = argparse.ArgumentParser(description="🚀 LinkedIn Lead Engine — API Only (PDL)")
     parser.add_argument("--category", help="Preset category")
-    parser.add_argument("--keywords", help="Custom search keywords")
+    parser.add_argument("--keywords", help="Custom keywords")
     parser.add_argument("--limit", type=int, default=100)
 
-    # People filters
-    parser.add_argument("--country", help="Country code (IN, US, GB)")
-    parser.add_argument("--city", help="City name")
-    parser.add_argument("--job-title", help="Job title keyword")
-    parser.add_argument("--seniority", help="senior / manager / director / vp / cxo")
-
-    # Company filters
-    parser.add_argument("--company", help="Company keyword")
-    parser.add_argument("--industry", help="Industry name")
+    # Filters
+    parser.add_argument("--country")
+    parser.add_argument("--city")
+    parser.add_argument("--seniority")
+    parser.add_argument("--company")
+    parser.add_argument("--industry")
     parser.add_argument("--company-size-min", type=int)
     parser.add_argument("--company-size-max", type=int)
-    parser.add_argument("--revenue-min", type=int)
-    parser.add_argument("--revenue-max", type=int)
-    parser.add_argument("--public-only", action="store_true")
 
     args = parser.parse_args()
 
@@ -194,8 +189,8 @@ def main():
 
     # EXPORT
     ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    csv_path = DATA_DIR / f"linkedin_leads_{ts}.csv"
-    xlsx_path = DATA_DIR / f"linkedin_leads_{ts}.xlsx"
+    csv_path = DATA_DIR / f"linkedin_leads_api_{ts}.csv"
+    xlsx_path = DATA_DIR / f"linkedin_leads_api_{ts}.xlsx"
 
     headers = list(results[0].keys()) if results else []
 
