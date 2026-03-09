@@ -4,7 +4,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)](https://python.org)
 [![Playwright](https://img.shields.io/badge/Playwright-Scraping-green?logo=playwright)](https://playwright.dev)
-[![Proxycurl](https://img.shields.io/badge/API-Proxycurl-orange)](https://nubela.co/proxycurl/)
+[![PeopleDataLabs](https://img.shields.io/badge/API-PeopleDataLabs-orange)](https://www.peopledatalabs.com/)
 [![AnymailFinder](https://img.shields.io/badge/API-AnymailFinder-purple)](https://newapp.anymailfinder.com)
 
 ---
